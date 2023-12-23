@@ -18,22 +18,28 @@ export class UserService {
   ) {}
 
   async findAll(): Promise<User[]> {
-    return await this.userRepository.find();
+    try {
+      return await this.userRepository.find();
+    } catch (error) {
+      console.error('Error searching users', error);
+      throw new Error(error);
+    }
   }
 
   async findOne(id: string) {
     try {
-      const user = await this.userRepository.findOne({ where: { id: id } });
+      const user = await this.userRepository.findOne({ where: { id } });
       if (!user) {
-        throw new Error();
+        throw new NotFoundException('Id non-existent');
       }
       return user;
-    } catch (err) {
-      throw new NotFoundException('Id non-existent');
+    } catch (error) {
+      console.error('Error finding user by id', error);
+      throw error;
     }
   }
 
-  getDate(): string {
+  private getDate(): string {
     const currDate = new Date();
     const day = currDate.getDate();
     const month = currDate.getMonth() + 1;
@@ -42,46 +48,43 @@ export class UserService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    try {
-      const { userName, password } = createUserDto;
-      const newUser = {
-        id: uuid().substring(0, 5),
-        userName: userName,
-        password: password,
-        createdAt: this.getDate(),
-        isLoggedIn: false,
-      };
-      const user = this.userRepository.create(newUser);
-      if (!user) {
-        throw new Error();
-      }
-      return await this.userRepository.save(user);
-    } catch (err) {
-      throw new BadRequestException('Error trying to create a new user');
+    const userFound = await this.userRepository.findOne({
+      where: { userName: createUserDto.userName },
+    });
+
+    if (userFound) {
+      throw new BadRequestException('User name is already in use');
     }
+
+    const { userName, password } = createUserDto;
+    const newUser = {
+      id: uuid().substring(0, 5),
+      userName: userName,
+      password: password,
+      createdAt: this.getDate(),
+      isLoggedIn: false,
+    };
+    const user = this.userRepository.create(newUser);
+    return await this.userRepository.save(user);
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
     try {
-      const { userName, password, createdAt, isLoggedIn } = updateUserDto;
       const foundUser = await this.findOne(id);
       if (!foundUser) {
         throw new Error();
       }
-      const user: Promise<User> = this.userRepository.save({
-        id: id,
-        userName: userName ? userName : foundUser.userName,
-        password: password ? password : foundUser.password,
-        createdAt: createdAt ? createdAt : foundUser.createdAt,
-        isLoggedIn: isLoggedIn ? isLoggedIn : foundUser.isLoggedIn,
-      });
-      return user;
+      return this.userRepository.update({ id }, updateUserDto);
     } catch (err) {
       throw new NotFoundException();
     }
   }
 
-  remove(id: string) {
-    return `This action removes a #${id} user`;
+  async remove(id: string) {
+    const foundUser = await this.userRepository.findOne({ where: { id } });
+    if (!foundUser) {
+      throw new NotFoundException('Id non-existent');
+    }
+    return this.userRepository.delete({ id });
   }
 }
