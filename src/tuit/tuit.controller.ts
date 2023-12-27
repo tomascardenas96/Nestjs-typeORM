@@ -17,9 +17,9 @@ export class TuitController {
     return this.tuitService.findAll();
   }
 
-  @Get(':id')
+  @Get(':id/tuit')
   findOne(@Param('id') id: string) {
-    return this.tuitService.findOne(+id);
+    return this.tuitService.findOne(id);
   }
 
   @Patch(':id')

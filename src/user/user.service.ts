@@ -19,7 +19,7 @@ export class UserService {
 
   async findAll(): Promise<User[]> {
     try {
-      return await this.userRepository.find();
+      return await this.userRepository.find({relations: ['tuits']});
     } catch (error) {
       console.error('Error searching users', error);
       throw new Error(error);

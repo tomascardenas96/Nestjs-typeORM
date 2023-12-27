@@ -21,7 +21,7 @@ export class TuitService {
     if (!user) {
       throw new NotFoundException(`User with ID not found`);
     }
-    
+
     const twit = {
       message: tuit.message,
       user: user,
@@ -29,15 +29,18 @@ export class TuitService {
 
     const newTwit = this.tuitRepository.create(twit);
     return this.tuitRepository.save(newTwit);
-
   }
 
   findAll() {
-    return this.tuitRepository.find();
+    return this.tuitRepository.find({relations: ['user']});
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} tuit`;
+  findOne(id: string) {
+    const foundUser = this.userRepository.findOne({ where: { id } });
+    if (!foundUser) {
+      throw new NotFoundException('user non-existent');
+    }
+    // return this.tuitRepository.find({where: {  }})
   }
 
   update(id: number, tuit: UpdateTuit) {
